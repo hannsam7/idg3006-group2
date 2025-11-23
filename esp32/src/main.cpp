@@ -5,28 +5,28 @@
 #define RX_PIN 16
 #define TX_PIN 17
 
-// Replace with your network information
-const char* ssid = "YOUR_WIFI_SSID";
+// WiFi credentials
+const char* ssid     = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
 
-// WebSocket server address (Raspberry Pi)
+// WebSocket server (Raspberry Pi)
 WebSocketsClient webSocket;
 const char* wsHost = "192.168.1.50";
 const uint16_t wsPort = 8085;
-const char* wsPath = "/ws";  // WebSocket endpoint
+const char* wsPath = "/ws";
 
-HardwareSerial mmwaveSerial(2); // UART2 for mmWave sensor
+HardwareSerial mmwaveSerial(2); // UART2
 
-void onWebSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
-    switch(type) {
+void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
+    switch (type) {
         case WStype_CONNECTED:
-            Serial.println("Connected to WebSocket server");
+            Serial.println("WebSocket connected");
             break;
         case WStype_DISCONNECTED:
-            Serial.println("Disconnected from WebSocket server");
+            Serial.println("WebSocket disconnected");
             break;
         case WStype_TEXT:
-            Serial.printf("Message from server: %s\n", payload);
+            Serial.printf("Server message: %s\n", payload);
             break;
         default:
             break;
@@ -39,13 +39,12 @@ void setup() {
 
     Serial.println("Connecting to WiFi...");
     WiFi.begin(ssid, password);
-
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
     }
-
-    Serial.println("\nWiFi connected!");
+    Serial.println("\nWiFi connected");
+    Serial.print("IP: ");
     Serial.println(WiFi.localIP());
 
     webSocket.begin(wsHost, wsPort, wsPath);
@@ -59,9 +58,11 @@ void loop() {
 
     if (mmwaveSerial.available()) {
         String sensorData = mmwaveSerial.readStringUntil('\n');
-        Serial.println("Sensor: " + sensorData);
-
-        // Send to backend
-        webSocket.sendTXT(sensorData);
+        sensorData.trim();
+        if (sensorData.length()) {
+            String json = String("{\"sensorId\":\"sensor1\",\"raw\":\"") + sensorData + "\"}";
+            Serial.println("Sending: " + json);
+            webSocket.sendTXT(json);
+        }
     }
 }
