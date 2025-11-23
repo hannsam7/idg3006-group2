@@ -26,6 +26,12 @@
 <div id="log"></div>
 
 <script>
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, "public")));
+
 const statusEl = document.getElementById("status");
 const desks = [document.getElementById("desk1"), document.getElementById("desk2"), document.getElementById("desk3")];
 const logEl = document.getElementById("log");
