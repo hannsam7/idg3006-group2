@@ -95,6 +95,22 @@ setInterval(() => {
   broadcast({ type: "heartbeat", ts: Date.now() });
 }, 15000);
 
+app.post("/api/inject", express.json(), (req, res) => {
+    const rawLine = String(req.body.raw || "");
+    if (!rawLine.trim()) return res.status(400).json({ error: "raw required" });
+    // Reuse presence logic
+    lastRaw = rawLine.trim();
+    const newPresence = derivePresence(lastRaw);
+    if (newPresence !== presence) {
+      presence = newPresence;
+      lastUpdate = new Date().toISOString();
+      broadcast({ type: "state", presence, lastRaw, lastUpdate });
+    } else {
+      broadcast({ type: "raw", raw: lastRaw, timestamp: new Date().toISOString() });
+    }
+    res.json({ ok: true, presence });
+  });
+
 server.listen(PORT, () => {
   console.log(`HTTP+WS server listening on :${PORT} (path ${WS_PATH})`);
 });
