@@ -6,12 +6,12 @@
 #define TX_PIN 17
 
 // WiFi credentials
-const char* ssid     = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid     = "YOUR_REAL_SSID";
+const char* password = "YOUR_REAL_PASSWORD";
 
 // WebSocket server (Raspberry Pi)
 WebSocketsClient webSocket;
-const char* wsHost = "192.168.1.50";
+const char* wsHost = "172.20.10.2";
 const uint16_t wsPort = 8085;
 const char* wsPath = "/ws";
 

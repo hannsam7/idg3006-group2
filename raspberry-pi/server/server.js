@@ -14,11 +14,26 @@ let lastUpdate = null;
 
 // Derive presence from a raw line (adjust to your sensor output)
 function derivePresence(raw) {
-  const line = raw.trim().toLowerCase();
-  if (!line) return false;
-  const tokens = ["person", "human", "target", "presence", "occupied"];
-  return tokens.some(t => line.includes(t));
-}
+    const line = raw.trim();
+    if (!line) return false;
+    // Try JSON with numeric target fields
+    try {
+      const obj = JSON.parse(line);
+      for (const k of ["targets","targetCount","count"]) {
+        if (typeof obj[k] === "number") return obj[k] > 0;
+      }
+      if (typeof obj.presence === "boolean") return obj.presence;
+      if (typeof obj.occupied === "boolean") return obj.occupied;
+    } catch {}
+    // key=value pattern: targets=1
+    const kv = line.match(/\b(targets?|count)\s*=\s*(\d+)/i);
+    if (kv) return parseInt(kv[2],10) > 0;
+    // simple CSV: second field numeric count
+    const parts = line.split(/[,;]/).map(p=>p.trim());
+    if (parts.length >= 2 && /^\d+$/.test(parts[1])) return parseInt(parts[1],10) > 0;
+    // fallback keywords
+    return /\b(person|human|occupied|presence|target)\b/i.test(line);
+  }
 
 const app = express();
 
@@ -50,16 +65,11 @@ wss.on("connection", (ws, req) => {
   ws.send(JSON.stringify({ type: "state", presence, lastRaw, lastUpdate }));
 
   ws.on("message", data => {
-    // Accept either JSON {"sensorId","raw"} or plain text
     let rawLine = data.toString();
-    try {
-      const obj = JSON.parse(rawLine);
-      if (obj && typeof obj === "object" && "raw" in obj) {
-        rawLine = String(obj.raw);
-      }
-    } catch {
-      // not JSON; keep as-is
-    }
+try {
+  const obj = JSON.parse(rawLine);
+  if (obj && typeof obj === "object" && "raw" in obj) rawLine = String(obj.raw);
+} catch {}
 
     const raw = rawLine.trim();
     if (!raw) return;
@@ -84,6 +94,22 @@ wss.on("connection", (ws, req) => {
 setInterval(() => {
   broadcast({ type: "heartbeat", ts: Date.now() });
 }, 15000);
+
+app.post("/api/inject", express.json(), (req, res) => {
+    const rawLine = String(req.body.raw || "");
+    if (!rawLine.trim()) return res.status(400).json({ error: "raw required" });
+    // Reuse presence logic
+    lastRaw = rawLine.trim();
+    const newPresence = derivePresence(lastRaw);
+    if (newPresence !== presence) {
+      presence = newPresence;
+      lastUpdate = new Date().toISOString();
+      broadcast({ type: "state", presence, lastRaw, lastUpdate });
+    } else {
+      broadcast({ type: "raw", raw: lastRaw, timestamp: new Date().toISOString() });
+    }
+    res.json({ ok: true, presence });
+  });
 
 server.listen(PORT, () => {
   console.log(`HTTP+WS server listening on :${PORT} (path ${WS_PATH})`);
