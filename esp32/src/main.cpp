@@ -5,15 +5,15 @@
 #define RX_PIN 16
 #define TX_PIN 17
 
-// WiFi credentials
-const char* ssid     = "YOUR_REAL_SSID";
-const char* password = "YOUR_REAL_PASSWORD";
+// WiFi credentials (SET REAL VALUES)
+const char* ssid     = "Hanna banna";        // 2.4 GHz SSID
+const char* password = "12345678";    // Wi-Fi password
 
-// WebSocket server (Raspberry Pi)
+// WebSocket server (Mac while testing)
 WebSocketsClient webSocket;
-const char* wsHost = "172.20.10.2";
+const char* wsHost = "10.24.11.99";           // your Mac's IP
 const uint16_t wsPort = 8085;
-const char* wsPath = "/ws";
+const char* wsPath = "/ws";                   // <-- missing semicolon fixed
 
 HardwareSerial mmwaveSerial(2); // UART2
 
