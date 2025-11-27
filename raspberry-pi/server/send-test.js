@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
 
-const url = "ws://localhost:8085/ws";
+const url = "ws://localhost:3000/ws";
 const frames = [
   '{"sensorId":"sensor1","raw":"targets=0"}',
   '{"sensorId":"sensor1","raw":"targets=2"}',

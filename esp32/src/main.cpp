@@ -8,13 +8,13 @@
 
 // eduroam credentials - UPDATE THESE
 const char* ssid = "eduroam";
-const char* EAP_IDENTITY = "hannsam"; // Your university username
-const char* EAP_PASSWORD = "JackRussell2025!"; // Your university password
+const char* EAP_IDENTITY = "sannasj"; // Your university username
+const char* EAP_PASSWORD = "KimNamjoon1994"; // Your university password
 
 // WebSocket server (Raspberry Pi)
 WebSocketsClient webSocket;
-const char* wsHost = "172.20.10.2"; // UPDATE if needed
-const uint16_t wsPort = 8085;
+const char* wsHost = "192.168.1.50"; // UPDATE if needed
+const uint16_t wsPort = 3000;
 const char* wsPath = "/ws";
 
 HardwareSerial mmwaveSerial(2);

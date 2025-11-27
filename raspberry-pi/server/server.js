@@ -4,7 +4,7 @@ import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const PORT = 8085;
+const PORT = 3000;
 const WS_PATH = "/ws";
 
 // In-memory state

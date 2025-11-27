@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-const url = "ws://localhost:8085/ws";
+const url = "ws://localhost:3000/ws";
 const samplePath = path.join(__dirname, "sample-data.txt");
 
 if (!fs.existsSync(samplePath)) {
