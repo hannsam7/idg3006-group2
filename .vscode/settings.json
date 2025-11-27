@@ -4,5 +4,6 @@
     "files.associations": {
         "ostream": "cpp",
         "print": "cpp"
-    }
+    },
+    "liveServer.settings.port": 5501
   }
