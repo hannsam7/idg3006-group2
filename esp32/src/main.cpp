@@ -1,22 +1,20 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebSocketsClient.h>
-#include "esp_wpa2.h" // Required for WPA2-Enterprise
 
 #define RX_PIN 16
 #define TX_PIN 17
 
-// eduroam credentials - UPDATE THESE
-const char* ssid = "eduroam";
-const char* EAP_IDENTITY = "sannasj@stud.ntnu.no"; // Your university username
-const char* EAP_PASSWORD = "KimNamjoon1994"; // Your university password
+// ===== Normal Wi-Fi (WPA2-PSK) =====
+const char* ssid = "Omni_9122A0";           // ← Change to your Wi-Fi name
+const char* password = "under6597";   // ← Change to your Wi-Fi password
 
-// WebSocket server (Raspberry Pi)
-WebSocketsClient webSocket;
-const char* wsHost = "192.168.1.50"; // UPDATE if needed
+// WebSocket server
+const char* wsHost = "192.168.39.101";  // ← Change to your PC's IP on same Wi-Fi
 const uint16_t wsPort = 3000;
 const char* wsPath = "/ws";
 
+WebSocketsClient webSocket;
 HardwareSerial mmwaveSerial(2);
 
 void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
@@ -30,9 +28,6 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         case WStype_TEXT:
             Serial.printf("← Server: %s\n", payload);
             break;
-        case WStype_ERROR:
-            Serial.println("✗ WebSocket error");
-            break;
         default:
             break;
     }
@@ -40,66 +35,95 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
 
 void setup() {
     Serial.begin(115200);
-    delay(1000); // Give serial time to initialize
+    delay(2000);
     
     mmwaveSerial.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
     
-    Serial.println("\n=== ESP32 mmWave Sensor ===");
-    Serial.println("Connecting to eduroam...");
+    Serial.println("\n=================================");
+    Serial.println("ESP32 WiFi (WPA2-PSK) Connection");
+    Serial.println("=================================");
     
-    // Disconnect if previously connected
+    // Reset WiFi
     WiFi.disconnect(true);
-    delay(100);
+    WiFi.mode(WIFI_OFF);
+    delay(500);
     WiFi.mode(WIFI_STA);
+    delay(500);
     
-    // Configure WPA2-Enterprise
-    esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY));
-    esp_wifi_sta_wpa2_ent_set_username((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY));
-    esp_wifi_sta_wpa2_ent_set_password((uint8_t *)EAP_PASSWORD, strlen(EAP_PASSWORD));
-    esp_wifi_sta_wpa2_ent_enable();
-
-    // Connect to eduroam
-    WiFi.begin(ssid);
+    Serial.print("Connecting to: ");
+    Serial.println(ssid);
+    
+    // Simple WPA2-PSK connect (no EAP)
+    WiFi.begin(ssid, password);
     
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
         delay(1000);
         Serial.print(".");
         attempts++;
+        
+        if (attempts % 10 == 0) {
+            Serial.println();
+            Serial.print("Status (");
+            Serial.print(attempts);
+            Serial.print("s): ");
+            switch(WiFi.status()) {
+                case WL_NO_SSID_AVAIL:
+                    Serial.println("Can't find network");
+                    break;
+                case WL_CONNECT_FAILED:
+                    Serial.println("Connection failed - check password");
+                    break;
+                case WL_DISCONNECTED:
+                    Serial.println("Disconnected");
+                    break;
+                default:
+                    Serial.println(WiFi.status());
+            }
+            Serial.print("Retrying");
+        }
     }
     
+    Serial.println();
+    
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\n✓ eduroam connected!");
-        Serial.print("IP Address: ");
+        Serial.println("\n✓✓✓ SUCCESS ✓✓✓");
+        Serial.print("IP: ");
         Serial.println(WiFi.localIP());
-        Serial.print("Signal Strength: ");
+        Serial.print("Signal: ");
         Serial.print(WiFi.RSSI());
         Serial.println(" dBm");
+        Serial.print("MAC: ");
+        Serial.println(WiFi.macAddress());
         
         // Initialize WebSocket
         webSocket.begin(wsHost, wsPort, wsPath);
         webSocket.onEvent(onWebSocketEvent);
         webSocket.setReconnectInterval(5000);
         webSocket.enableHeartbeat(15000, 3000, 2);
+        Serial.println("✓ WebSocket ready");
         
-        Serial.println("WebSocket initialized");
     } else {
-        Serial.println("\n✗ Failed to connect to eduroam");
-        Serial.println("Please check:");
-        Serial.println("  - Username/password are correct");
-        Serial.println("  - eduroam is available");
-        Serial.println("  - ESP32 is in range");
+        Serial.println("\n✗ FAILED to connect");
+        Serial.println("\nCheck:");
+        Serial.println("  - SSID is correct");
+        Serial.println("  - Password is correct");
+        Serial.println("  - Wi-Fi is in range");
+        Serial.print("\nYour MAC: ");
+        Serial.println(WiFi.macAddress());
     }
 }
 
 void loop() {
     webSocket.loop();
     
-    // Check WiFi connection
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi disconnected, attempting reconnect...");
-        WiFi.begin(ssid);
-        delay(5000);
+    static unsigned long lastCheck = 0;
+    if (millis() - lastCheck > 10000) {
+        lastCheck = millis();
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println("WiFi disconnected, reconnecting...");
+            WiFi.begin(ssid, password);
+        }
     }
     
     // Read mmWave sensor data
@@ -108,18 +132,14 @@ void loop() {
         sensorData.trim();
         
         if (sensorData.length() > 0) {
-            // Create JSON payload
-            String json = String("{\"sensorId\":\"sensor1\",\"raw\":\"") + sensorData + "\"}";
-            
-            Serial.println("→ Sending: " + json);
+            String json = "{\"sensorId\":\"sensor1\",\"raw\":\"" + sensorData + "\"}";
+            Serial.println("→ " + json);
             
             if (webSocket.isConnected()) {
                 webSocket.sendTXT(json);
-            } else {
-                Serial.println("✗ WebSocket not connected, data not sent");
             }
         }
     }
     
-    delay(10); // Small delay to prevent watchdog issues
+    delay(10);
 }
