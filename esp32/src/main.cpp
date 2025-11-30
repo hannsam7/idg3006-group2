@@ -8,7 +8,7 @@
 
 // eduroam credentials - UPDATE THESE
 const char* ssid = "eduroam";
-const char* EAP_IDENTITY = "sannasj"; // Your university username
+const char* EAP_IDENTITY = "sannasj@stud.ntnu.no"; // Your university username
 const char* EAP_PASSWORD = "KimNamjoon1994"; // Your university password
 
 // WebSocket server (Raspberry Pi)
@@ -57,7 +57,7 @@ void setup() {
     esp_wifi_sta_wpa2_ent_set_username((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY));
     esp_wifi_sta_wpa2_ent_set_password((uint8_t *)EAP_PASSWORD, strlen(EAP_PASSWORD));
     esp_wifi_sta_wpa2_ent_enable();
-    
+
     // Connect to eduroam
     WiFi.begin(ssid);
     
