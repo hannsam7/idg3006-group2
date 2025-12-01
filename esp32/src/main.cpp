@@ -6,11 +6,11 @@
 #define TX_PIN 17
 
 // ===== Normal Wi-Fi (WPA2-PSK) =====
-const char* ssid = "Omni_9122A0";           // ← Change to your Wi-Fi name
-const char* password = "under6597";   // ← Change to your Wi-Fi password
+const char* ssid = "SUSWATARI 6414";           // ← Change to your Wi-Fi name
+const char* password = "plisfunk123";   // ← Change to your Wi-Fi password
 
 // WebSocket server
-const char* wsHost = "192.168.39.101";  // ← Change to your PC's IP on same Wi-Fi
+const char* wsHost = "10.22.111.68";  // ← Change to your PC's IP on same Wi-Fi
 const uint16_t wsPort = 3000;
 const char* wsPath = "/ws";
 
