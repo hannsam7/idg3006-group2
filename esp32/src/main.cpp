@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebSocketsClient.h>
+#include "esp_system.h"
 
 #define RX_PIN 16
 #define TX_PIN 17
@@ -21,18 +22,39 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
   else if (type == WStype_TEXT) Serial.printf("WS msg: %s\n", payload);
 }
 
+static void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+  if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+    // See wifi_err_reason_t for codes; printing numeric is enough for debugging
+    Serial.printf("\nWiFi disconnected, reason=%d\n", info.wifi_sta_disconnected.reason);
+  } else {
+    Serial.printf("\nWiFi event: %d\n", event);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
+  Serial.printf("Reset reason: %d\n", (int)esp_reset_reason());
   mmwaveSerial.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
   mmwaveSerial.println("PING");
   mmwaveSerial.println("start"); 
 
+  WiFi.mode(WIFI_STA);
+  WiFi.onEvent(onWiFiEvent); 
   Serial.println("Connecting to WiFi...");
+  WiFi.disconnect(true, true);  
+  delay(200);
+
+  int n = WiFi.scanNetworks();
+Serial.printf("Found %d networks:\n", n);
+for (int i = 0; i < n; i++) {
+  Serial.printf("  %2d: %s (ch %d RSSI %d)\n", i+1, WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i));
+}
+
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
   Serial.printf("\nWiFi connected, IP: %s\n", WiFi.localIP().toString().c_str());
-  WiFi.setSleep(false);  
+  WiFi.setSleep(false);
 
   webSocket.begin(wsHost, wsPort, wsPath);
   webSocket.onEvent(onWebSocketEvent);
