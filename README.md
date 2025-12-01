@@ -5,7 +5,7 @@ UI code
 ipconfig
 
 # 1 start the node.js server
-cd "c:\Users\sanna\Desktop\idg3006-group2\idg3006-group2\raspberry-pi\server"
+cd "c:\Users\sanna\Desktop\idg3006-group2\idg3006-group2\raspberry-pi\servr"
 npm install
 node server.js
 
