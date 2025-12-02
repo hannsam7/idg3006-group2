@@ -6,11 +6,11 @@
 #define TX_PIN 17
 
 // ===== Normal Wi-Fi (WPA2-PSK) =====
-const char* ssid = "Omni_9122A0";           // ← Change to your Wi-Fi name
-const char* password = "under6597";   // ← Change to your Wi-Fi password
+const char* ssid = "";           // ← Change to your Wi-Fi name
+const char* password = "";   // ← Change to your Wi-Fi password
 
 // WebSocket server
-const char* wsHost = "192.168.39.101";  // ← Change to your PC's IP on same Wi-Fi
+const char* wsHost = "172.20.10.2";  // ← Change to your PC's IP on same Wi-Fi
 const uint16_t wsPort = 3000;
 const char* wsPath = "/ws";
 
@@ -37,7 +37,7 @@ void setup() {
     Serial.begin(115200);
     delay(2000);
     
-    mmwaveSerial.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
+    mmwaveSerial.begin(115200, SERIAL_8N1, 16, 17);
     
     Serial.println("\n=================================");
     Serial.println("ESP32 WiFi (WPA2-PSK) Connection");
