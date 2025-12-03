@@ -1,5 +1,89 @@
 import serial
 import time
+import sys
+import builtins
+import glob
+import os
+
+# Replace built-in print with a safe wrapper that avoids UnicodeEncodeError
+def _safe_print(*args, **kwargs):
+    """Print text but fall back to replacing characters that can't be
+    encoded by the current stdout encoding. This avoids crashes on systems
+    using latin-1 or other limited encodings."""
+    try:
+        builtins.print(*args, **kwargs)
+    except UnicodeEncodeError:
+        enc = sys.stdout.encoding or 'utf-8'
+        new_args = []
+        for a in args:
+            if isinstance(a, str):
+                try:
+                    a = a.encode(enc, errors='replace').decode(enc)
+                except Exception:
+                    # As a last resort, force-ascii replacement
+                    a = a.encode('ascii', errors='replace').decode('ascii')
+            new_args.append(a)
+        builtins.print(*new_args, **kwargs)
+
+# Override the built-in print function in this module
+print = _safe_print
+
+
+def find_serial_port(preferred):
+    """Return the first existing serial port. Prefer `preferred` if present.
+
+    Searches common device patterns and returns the first match. Returns
+    None if nothing is found.
+    """
+    try:
+        if preferred and os.path.exists(preferred):
+            return preferred
+
+        # Common serial device patterns
+        patterns = [
+            '/dev/ttyUSB*',
+            '/dev/ttyACM*',
+            '/dev/serial*',
+            '/dev/ttyS*',
+            '/dev/ttyAMA*',
+        ]
+
+        seen = set()
+        for pat in patterns:
+            for p in glob.glob(pat):
+                if p not in seen:
+                    seen.add(p)
+                    if os.path.exists(p):
+                        return p
+    except Exception:
+        return None
+
+    return None
+
+
+def verify_rx_tx(ser, timeout=0.5):
+    """Probe the serial connection to get a quick indication whether the
+    sensor is connected with TX/RX crossed correctly.
+
+    This is a best-effort check: it sends a short probe and looks for any
+    incoming bytes. If the device is already outputting data this will
+    succeed; if the device is silent it may still return False even with
+    correct wiring. Use the printed guidance if the probe fails.
+    """
+    try:
+        # Clear any old data and send a short probe
+        ser.reset_input_buffer()
+        ser.write(b"\n")
+        time.sleep(timeout)
+        if ser.in_waiting > 0:
+            return True
+
+        # Try a second probe that's slightly different
+        ser.write(b"*\n")
+        time.sleep(timeout)
+        return ser.in_waiting > 0
+    except Exception:
+        return False
 
 # DFRobot SEN0395 Configuration
 SERIAL_PORT = '/dev/ttyAMA0'  # Change if needed: /dev/ttyUSB0, /dev/serial0
@@ -43,7 +127,7 @@ def setup_sen0395(ser):
     send_command(ser, "setSensitivity 7")  # Medium-high sensitivity
     
     # Set detection range (optional, 0.3m to 10m)
-    send_command(ser, "setRange 0.3 6")  # Detect from 0.3m to 6m
+    send_command(ser, "setRange 0.3 2")  # Detect from 0.3m to 6m
     
     # Step 4: Save configuration
     print("\nStep 4: Saving configuration...")
@@ -63,17 +147,34 @@ def check_sen0395():
     print("=" * 60)
     print("DFRobot SEN0395 mmWave Sensor - Setup & Checker")
     print("=" * 60)
-    print(f"Port: {SERIAL_PORT} | Baud: {BAUD_RATE}\n")
+
+    # Auto-detect serial port if the configured one is not present
+    port_to_use = find_serial_port(SERIAL_PORT)
+    if port_to_use and port_to_use != SERIAL_PORT:
+        print(f"Port: {port_to_use} (auto-detected; configured: {SERIAL_PORT}) | Baud: {BAUD_RATE}\n")
+    else:
+        # either preferred exists or nothing found; print configured
+        print(f"Port: {port_to_use or SERIAL_PORT} | Baud: {BAUD_RATE}\n")
     
     try:
         # Open serial connection
         ser = serial.Serial(
-            port=SERIAL_PORT,
+            port=port_to_use or SERIAL_PORT,
             baudrate=BAUD_RATE,
             timeout=1
         )
         
         print("✓ Serial port opened successfully")
+
+        # Quick RX/TX probe to help detect wiring mistakes
+        print("Checking RX/TX wiring (sending a short probe)...")
+        if verify_rx_tx(ser):
+            print("✓ RX/TX wiring looks OK (device responded).")
+        else:
+            print("✗ No response to probe - check wiring:")
+            print("  - Sensor TX should be connected to Pi RX")
+            print("  - Sensor RX should be connected to Pi TX")
+            print("  If the sensor is silent by design, this probe may still fail.")
         
         # Clear any existing data
         ser.reset_input_buffer()
