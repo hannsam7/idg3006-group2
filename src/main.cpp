@@ -210,11 +210,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 void setup() {
   Serial.begin(115200);
 
-  String staMac = WiFi.macAddress();       // Station MAC (used when joining a Wi-Fi)
-  String apMac  = WiFi.softAPmacAddress(); // Access Point MAC (used when hosting an AP)
-  Serial.println("STA MAC: " + staMac);
-  Serial.println("AP  MAC: " + apMac);
-  
   Serial.println("\n\nESP32 mmWave WebSocket Server");
   Serial.println("==============================");
   
@@ -225,6 +220,11 @@ void setup() {
   // Create WiFi Access Point
   WiFi.softAP(ap_ssid, ap_password);
   IPAddress IP = WiFi.softAPIP();
+
+  String staMac = WiFi.macAddress();       // Station MAC (used when joining a Wi-Fi)
+  String apMac  = WiFi.softAPmacAddress(); // Access Point MAC (used when hosting an AP)
+  Serial.println("STA MAC: " + staMac);
+  Serial.println("AP  MAC: " + apMac);
   
   Serial.println("\n✓ WiFi Access Point created");
   Serial.println("  SSID: " + String(ap_ssid));
