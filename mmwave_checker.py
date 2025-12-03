@@ -127,7 +127,7 @@ def setup_sen0395(ser):
     send_command(ser, "setSensitivity 7")  # Medium-high sensitivity
     
     # Set detection range (optional, 0.3m to 10m)
-    send_command(ser, "setRange 0.3 2")  # Detect from 0.3m to 6m
+    send_command(ser, "setRange 0.3 2")  # Detect from 0.3m to 2m
     
     # Step 4: Save configuration
     print("\nStep 4: Saving configuration...")
